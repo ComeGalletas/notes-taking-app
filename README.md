@@ -58,7 +58,8 @@ When the AI finished the major changes, I started testing the flows for the core
 
 After the core functions had been tested manually, I focused on the visual elements exclusively to match the design document specifications as precisely as possible, testing compatibility and responsiveness. At this point there weren't any backend changes left.
 
-Finally, I performed some general automated tests with Playwright, trying to stress the app, and then, adding functional and unit tests, then finalized the remaining folder and file structure along with the respective README files containing the details.
+Finally, I performed some general automated tests with Playwright, trying to stress the app, checking the code quality with the [Ponytail](https://github.com/DietrichGebert/ponytail) plugin, adding functional and unit tests, and then finalized the remaining folder and file structure along with the respective README files containing the details.
+
 
 I used GitHub Copilot on the Auto model for code generation and free tools such as ChatGPT, Grok, and Claude to ask questions and verify changes outside the repository for clean answers. For Copilot, I spent around 1.1k tokens.
 
