@@ -34,7 +34,3 @@ npm run dev
 ```
 
 Frontend runs at `http://localhost:3000`.
-
-## Environment
-
-If needed, set frontend environment values in `frontend/.env.local`.
