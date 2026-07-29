@@ -1,0 +1,105 @@
+# Task
+I want you to act as a senior full-stack engineer experienced with Next.js App Router, React, Django REST Framework, and JWT authentication.
+
+My application consists of:
+
+- Frontend:
+- React
+- Axios
+- Client Components where appropriate
+
+- Backend:
+- Django
+- Django REST Framework
+- JWT authentication (SimpleJWT)
+- Access token + Refresh token
+
+
+The current implementation works but has several architectural problems:
+
+- AppRouter is simple and only for two views.
+- Authentication state is determined by reading localStorage during rendering.
+- ProtectedRoute checks authentication synchronously during render.
+- This causes hydration mismatches in App Router.
+- Axios only injects the access token.
+- Refresh tokens are stored but never used.
+- There is no automatic token refresh.
+- There is no centralized handling of 401 responses.
+- Authentication is mostly client-side.
+I do NOT want a quick fix.
+
+I want a production-oriented authentication architecture that follows modern Next.js App Router best practices.
+
+# Objectives
+Please redesign the authentication pipeline.
+
+The solution should:
+
+1. Eliminate hydration mismatches.
+2. Avoid reading localStorage during rendering.
+3. Explain whether localStorage or HttpOnly cookies are the better approach.
+4. Recommend the best approach for App Router.
+5. Keep route protection consistent.
+6. Make authentication resilient to expired access tokens.
+7. Minimize duplicate authentication logic.
+8. Be easy to maintain and extend.
+
+# Backend
+The backend is Django REST Framework using JWT (SimpleJWT).
+
+Please include any backend changes that would improve the frontend architecture.
+
+For example:
+
+- login endpoint
+- refresh endpoint
+- logout endpoint
+- current-user (/me) endpoint
+- token verification
+- cookie settings (if cookies are recommended)
+- CSRF considerations
+- refresh token rotation
+- blacklist support
+
+# Frontend
+Please redesign:
+
+- authentication flow
+- ProtectedRoute (or explain why it should be removed)
+- Axios instance
+- request interceptors
+- response interceptors
+- automatic token refresh
+- retrying failed requests
+- logout flow
+- startup authentication
+- global authentication state
+- handling page refreshes
+- handling expired sessions
+- route protection
+
+# App Router
+I specifically want an App Router architecture.
+
+If middleware, layouts, server components, cookies(), or server-side authentication should replace my current implementation, explain why.
+
+# Deliverables
+Please provide:
+
+1. High-level architecture diagram.
+2. Authentication sequence diagrams for:
+- login
+- page load
+- authenticated API request
+- expired access token
+- logout
+3. Recommended project structure.
+4. Backend changes.
+5. Frontend changes.
+6. Incremental migration plan from my existing implementation.
+7. Example code for every important component.
+Do not immediately rewrite my entire project.
+
+Start by proposing the architecture and explaining the reasoning behind every major design decision.
+
+Only after the architecture is approved should we implement each piece incrementally.
