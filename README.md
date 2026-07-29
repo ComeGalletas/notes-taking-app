@@ -71,7 +71,7 @@ I used GitHub Copilot on the Auto model for code generation and free tools such 
 	- Add user authentication with JWT (SimpleJWT).
 
 2. Create a frontend starter
-	- Start from a plain React app (for example, Vite + React).
+	- Start from a plain React app (Vite + React).
 	- Build initial screens for login, dashboard, and note editor.
 	- Connect to backend endpoints using Axios.
 
