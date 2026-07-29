@@ -2,13 +2,13 @@ import React from 'react'
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { AuthProvider, useAuth } from './AuthProvider'
+import { AuthProvider, useAuth } from '../../components/AuthProvider'
 
-vi.mock('../../lib/api', () => ({
+vi.mock('../../../lib/api', () => ({
   getSession: vi.fn(),
 }))
 
-import { getSession } from '../../lib/api'
+import { getSession } from '../../../lib/api'
 
 function AuthProbe() {
   const { status, user } = useAuth()

@@ -1,4 +1,6 @@
 from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
 from .models import Category, Note
@@ -8,12 +10,19 @@ User = get_user_model()
 
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=150)
-    password = serializers.CharField(write_only=True, min_length=4)
+    password = serializers.CharField(write_only=True)
 
 
 class RegisterSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=150)
-    password = serializers.CharField(write_only=True, min_length=4)
+    password = serializers.CharField(write_only=True)
+
+    def validate_password(self, value):
+        try:
+            validate_password(value)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(exc.messages) from exc
+        return value
 
 
 class RefreshSerializer(serializers.Serializer):

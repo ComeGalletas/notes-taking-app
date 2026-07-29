@@ -20,8 +20,8 @@ export default function SignUpPage() {
 
   function getBackendErrorMessage(requestError, fallbackMessage) {
     return (
+      requestError.response?.data?.error?.details?.password?.[0] ||
       requestError.response?.data?.error?.message ||
-      requestError.response?.data?.detail ||
       fallbackMessage
     )
   }

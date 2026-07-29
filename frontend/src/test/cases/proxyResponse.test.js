@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildProxyResponse } from './proxyResponse'
+import { buildProxyResponse } from '../../lib/server/proxyResponse'
 
 describe('buildProxyResponse', () => {
   it('returns normalized error payload and request id header', async () => {

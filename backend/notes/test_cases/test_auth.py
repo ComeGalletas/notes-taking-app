@@ -3,7 +3,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from .models import Category
+from ..models import Category
 
 User = get_user_model()
 
@@ -41,7 +41,7 @@ class AuthFlowTests(APITestCase):
 			format="json",
 		)
 
-		self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+		self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 		self.assertEqual(response.data["detail"], "Invalid username or password.")
 
 	def test_me_endpoint_requires_and_returns_authenticated_user(self):

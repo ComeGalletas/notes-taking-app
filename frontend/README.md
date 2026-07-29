@@ -1,46 +1,141 @@
-# Frontend (Next.js)
+# Frontend (Next.js App Router)
 
-This frontend is implemented with Next.js and connects to the Django REST backend.
+This folder contains the Next.js frontend for the notes-taking app.
+It contains separate screens for login and sign-up, but it also supports functionality for both with a single button.
 
-Authentication is handled with HttpOnly cookies via Next.js route handlers (`/api/*`) that proxy to Django.
+## What it does
 
-The client auth state is bootstrapped globally via an auth provider that calls `/api/auth/session` once on startup.
-Proxy routes include `x-request-id` on responses and normalize upstream errors into a consistent `error` object.
+- Renders auth pages, dashboard, and note editor UI.
+- Uses internal Next.js API routes under `/api/*` as a backend-for-frontend layer.
+- Proxies requests to the Django backend and manages auth with HttpOnly cookies.
+- Bootstraps auth state globally through `AuthProvider` using `/api/auth/session`.
 
-## Run
+## Stack
 
-1. Install dependencies:
-	- npm install
-2. Configure environment:
-	- copy .env.example to .env.local
-3. Start development server:
-	- npm run dev
+- Next.js 15 (App Router)
+- React 19
+- Axios client for browser-side API calls
+- Vitest + Testing Library for tests
 
-Default URL: http://localhost:3000
+## Prerequisites
 
-## Routes
+- Node.js 18+
+- Backend running locally (default expected backend API: `http://127.0.0.1:8000/api`)
 
-- /login
-- /dashboard
-- /notes/new
-- /notes/[noteId]
+## Setup
 
-## Internal API routes
+From this `frontend/` folder:
 
-- /api/auth/csrf
-- /api/auth/login
-- /api/auth/refresh
-- /api/auth/logout
-- /api/auth/session
-- /api/categories
-- /api/notes
-- /api/notes/[noteId]
+```bash
+npm install
+```
 
-## Tests
+Env file needed, default at:
 
-- Run unit/integration tests with:
-	- npm run test
-- Run auth end-to-end smoke (requires running backend + frontend):
-	- npm run test:smoke
-	- optional base URL override: `SMOKE_BASE_URL=http://localhost:3000 npm run test:smoke`
-	- optional timeout override: `SMOKE_TIMEOUT_MS=15000 npm run test:smoke`
+```bash
+.env.local
+```
+
+
+## Run commands
+
+Start dev server:
+
+```bash
+npm run dev
+```
+
+Build production bundle:
+
+```bash
+npm run build
+```
+
+Start production server:
+
+```bash
+npm run start
+```
+
+Default frontend URL: `http://localhost:3000`
+
+## App routes
+
+- `/login`
+- `/signup`
+- `/dashboard`
+- `/notes/new`
+- `/notes/[noteId]`
+
+## Internal API routes (frontend)
+
+Auth:
+
+- `/api/auth/csrf`
+- `/api/auth/register`
+- `/api/auth/login`
+- `/api/auth/refresh`
+- `/api/auth/logout`
+- `/api/auth/session`
+
+Notes and categories:
+
+- `/api/categories`
+- `/api/notes`
+- `/api/notes/[noteId]`
+
+## Environment variables
+
+Frontend API proxy/auth config supports:
+
+- `BACKEND_API_BASE_URL`
+- `NEXT_PUBLIC_API_BASE_URL` (fallback)
+
+If none are set, default backend API base URL is:
+
+- `http://127.0.0.1:8000/api`
+
+Smoke test options:
+
+- `SMOKE_BASE_URL` (default: `http://localhost:3000`)
+- `SMOKE_TIMEOUT_MS` (default: `10000`)
+
+## Test commands
+
+Run all unit/integration tests:
+
+```bash
+npm run test
+```
+
+Run code coverage (requires vitest):
+
+```bash
+npx vitest --coverage
+```
+
+Run auth smoke flow (requires frontend and backend running):
+
+```bash
+npm run test:smoke
+```
+
+Windows PowerShell examples for smoke overrides:
+
+```powershell
+$env:SMOKE_BASE_URL = "http://localhost:3000"
+$env:SMOKE_TIMEOUT_MS = "15000"
+npm run test:smoke
+```
+
+## Current test files
+
+Centralized test cases live in `src/test/cases/`, including:
+
+- API client behavior
+- Auth provider behavior
+- Dashboard flow
+- Login page
+- Signup page
+- Note editor page
+- Proxy response helpers

@@ -14,5 +14,3 @@ class NoteAdmin(admin.ModelAdmin):
 	list_display = ("title", "user", "category", "updated_at")
 	search_fields = ("title", "content", "user__username")
 	list_filter = ("category", "updated_at")
-
-# Register your models here.

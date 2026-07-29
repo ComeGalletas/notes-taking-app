@@ -1,11 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 import {
   createNote,
-  deleteNote,
   fetchCategories,
   fetchNote,
   updateNote,
@@ -17,12 +16,15 @@ const DEFAULT_COLOR = '#FFE082'
 
 function formatFullUpdatedDate(value) {
   if (!value) {
-    return 'Last updated after save'
+    return new Intl.DateTimeFormat('en-US', {
+      dateStyle: 'full',
+      timeStyle: 'short',
+    }).format(new Date())
   }
 
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) {
-    return 'Last updated after save'
+    return 'NaN'
   }
 
   return new Intl.DateTimeFormat('en-US', {
@@ -44,6 +46,10 @@ export default function NoteEditorPage({ noteId = null }) {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [createdNoteId, setCreatedNoteId] = useState(null)
+  const [draftTouched, setDraftTouched] = useState(false)
+  const lastSavedSnapshotRef = useRef('')
+  const closeRequestedRef = useRef(false)
 
   const selectedCategory = categories.find((item) => String(item.id) === String(categoryId))
   const noteColor = selectedCategory?.color || DEFAULT_COLOR
@@ -65,6 +71,7 @@ export default function NoteEditorPage({ noteId = null }) {
           setContent(loadedNote.content)
           setLastUpdatedAt(loadedNote.updated_at)
           setCategoryId(loadedNote.category ? String(loadedNote.category) : initialCategoryId)
+          setCreatedNoteId(loadedNote.id)
         }
       } catch (requestError) {
         if (requestError.response?.status === 401) {
@@ -80,50 +87,88 @@ export default function NoteEditorPage({ noteId = null }) {
     loadData()
   }, [isNew, noteId, searchParams])
 
-  async function handleSubmit(event) {
-    event.preventDefault()
+  useEffect(() => {
+    if (loading || !draftTouched || closeRequestedRef.current) {
+      return
+    }
+
+    const payload = {
+      title: title.trim() || 'Untitled',
+      content,
+      color: noteColor,
+      category: categoryId || null,
+    }
+    const snapshot = JSON.stringify(payload)
+
+    if (snapshot === lastSavedSnapshotRef.current) {
+      return
+    }
+
+    const timeoutId = setTimeout(async () => {
+      if (closeRequestedRef.current) {
+        return
+      }
+
+      setSaving(true)
+      setError('')
+
+      try {
+        const savedNote = createdNoteId
+          ? await updateNote(createdNoteId, payload)
+          : await createNote(payload)
+
+        setCreatedNoteId((previousValue) => previousValue ?? savedNote.id)
+        setLastUpdatedAt(savedNote.updated_at)
+        lastSavedSnapshotRef.current = snapshot
+      } catch (requestError) {
+        if (requestError.response?.status === 401) {
+          router.replace('/login')
+          return
+        }
+        setError('Could not auto-save note.')
+      } finally {
+        setSaving(false)
+      }
+    }, 2000)
+
+    return () => {
+      clearTimeout(timeoutId)
+    }
+  }, [loading, draftTouched, title, content, noteColor, categoryId, createdNoteId])
+
+  async function handleCloseNote() {
+    if (saving) {
+      return
+    }
+
+    closeRequestedRef.current = true
     setSaving(true)
     setError('')
 
     const payload = {
-      title,
+      title: title.trim() || 'Untitled',
       content,
       color: noteColor,
       category: categoryId || null,
     }
 
     try {
-      if (isNew) {
-        await createNote(payload)
-      } else {
-        await updateNote(noteId, payload)
-      }
+      const savedNote = createdNoteId
+        ? await updateNote(createdNoteId, payload)
+        : await createNote(payload)
+
+      setCreatedNoteId((previousValue) => previousValue ?? savedNote.id)
+      setLastUpdatedAt(savedNote.updated_at)
       router.push('/dashboard')
     } catch (requestError) {
       if (requestError.response?.status === 401) {
         router.replace('/login')
         return
       }
+      closeRequestedRef.current = false
       setError('Could not save note.')
     } finally {
       setSaving(false)
-    }
-  }
-
-  async function handleDelete() {
-    if (isNew) {
-      return
-    }
-
-    try {
-      await deleteNote(noteId)
-      router.push('/dashboard')
-    } catch (requestError) {
-      if (requestError.response?.status === 401) {
-        router.replace('/login')
-        return
-      }
-      setError('Could not delete note.')
     }
   }
 
@@ -145,7 +190,10 @@ export default function NoteEditorPage({ noteId = null }) {
             <div className="note-editor-category-control">
               <Select.Root
                 value={categoryId}
-                onValueChange={setCategoryId}
+                onValueChange={(value) => {
+                  setCategoryId(value)
+                  setDraftTouched(true)
+                }}
               >
                 <Select.Trigger className="category-trigger">
                   <span
@@ -201,12 +249,43 @@ export default function NoteEditorPage({ noteId = null }) {
                 </Select.Portal>
               </Select.Root>
             </div>
+
+            <button
+              type="button"
+              className="note-editor-close-button"
+              onClick={handleCloseNote}
+              disabled={saving}
+              aria-label="Save and close note"
+              title="Save and close"
+            >
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <path
+                  d="M6 6L18 18M18 6L6 18"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
         </div>
 
         <section className="note-editor-card" style={{ backgroundColor: noteColor }}>
           <p className="note-editor-updated">Last updated {formatFullUpdatedDate(lastUpdatedAt)}</p>
 
-          <form className="note-editor-form" onSubmit={handleSubmit}>
+          <form
+            className="note-editor-form"
+            onSubmit={(event) => {
+              event.preventDefault()
+            }}
+          >
             <label className="sr-only" htmlFor="title">
               Title
             </label>
@@ -215,7 +294,10 @@ export default function NoteEditorPage({ noteId = null }) {
               id="title"
               placeholder="Note Title"
               value={title}
-              onChange={(event) => setTitle(event.target.value)}
+              onChange={(event) => {
+                setTitle(event.target.value)
+                setDraftTouched(true)
+              }}
               maxLength={200}
               required
             />
@@ -228,22 +310,15 @@ export default function NoteEditorPage({ noteId = null }) {
               id="content"
               placeholder="Pour your heart out..."
               value={content}
-              onChange={(event) => setContent(event.target.value)}
+              onChange={(event) => {
+                setContent(event.target.value)
+                setDraftTouched(true)
+              }}
               rows={12}
             />
 
             {error && <p className="form-error">{error}</p>}
-
-            <div className="editor-actions">
-              {!isNew && (
-                <button type="button" className="delete-button" onClick={handleDelete}>
-                  Delete note
-                </button>
-              )}
-              <button type="submit" className="new-note-button" disabled={saving}>
-                {saving ? 'Saving...' : 'Save note'}
-              </button>
-            </div>
+            {saving && <p className="muted">Saving...</p>}
           </form>
         </section>
       </div>

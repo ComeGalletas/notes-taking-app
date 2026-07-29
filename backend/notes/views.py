@@ -1,6 +1,8 @@
 import os
+from typing import Any, cast
 
 from django.contrib.auth import authenticate, get_user_model
+from django.utils import timezone
 from django.middleware.csrf import get_token
 from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework import status, viewsets
@@ -67,9 +69,10 @@ def ensure_default_categories(user):
 def register_view(request):
 	serializer = RegisterSerializer(data=request.data)
 	serializer.is_valid(raise_exception=True)
+	validated_data = cast(dict[str, Any], serializer.validated_data)
 
-	username = serializer.validated_data["username"]
-	password = serializer.validated_data["password"]
+	username = validated_data["username"]
+	password = validated_data["password"]
 
 	if User.objects.filter(username=username).exists():
 		return Response(
@@ -95,16 +98,20 @@ def register_view(request):
 def login_view(request):
 	serializer = LoginSerializer(data=request.data)
 	serializer.is_valid(raise_exception=True)
+	validated_data = cast(dict[str, Any], serializer.validated_data)
 
-	username = serializer.validated_data["username"]
-	password = serializer.validated_data["password"]
+	username = validated_data["username"]
+	password = validated_data["password"]
 
 	user = authenticate(username=username, password=password)
 	if user is None:
 		return Response(
 			{"detail": "Invalid username or password."},
-			status=status.HTTP_400_BAD_REQUEST,
+			status=status.HTTP_401_UNAUTHORIZED,
 		)
+
+	user.last_login = timezone.now()
+	user.save(update_fields=["last_login"])
 
 	ensure_default_categories(user)
 	refresh = RefreshToken.for_user(user)
@@ -122,18 +129,21 @@ def login_view(request):
 def refresh_view(request):
 	serializer = RefreshSerializer(data=request.data)
 	serializer.is_valid(raise_exception=True)
+	validated_data = cast(dict[str, Any], serializer.validated_data)
 
-	jwt_serializer = TokenRefreshSerializer(data=serializer.validated_data)
+	jwt_serializer = TokenRefreshSerializer(data=validated_data)
 	try:
 		jwt_serializer.is_valid(raise_exception=True)
 	except TokenError as exc:
 		raise AuthenticationFailed(str(exc)) from exc
 
+	jwt_validated_data = cast(dict[str, Any], jwt_serializer.validated_data)
+
 	response_payload = {
-		"access": jwt_serializer.validated_data["access"],
+		"access": jwt_validated_data["access"],
 	}
-	if "refresh" in jwt_serializer.validated_data:
-		response_payload["refresh"] = jwt_serializer.validated_data["refresh"]
+	if "refresh" in jwt_validated_data:
+		response_payload["refresh"] = jwt_validated_data["refresh"]
 
 	return Response(response_payload, status=status.HTTP_200_OK)
 
@@ -143,13 +153,14 @@ def refresh_view(request):
 def logout_view(request):
 	serializer = LogoutSerializer(data=request.data)
 	serializer.is_valid(raise_exception=True)
+	validated_data = cast(dict[str, Any], serializer.validated_data)
 
 	try:
-		RefreshToken(serializer.validated_data["refresh"]).blacklist()
+		RefreshToken(validated_data["refresh"]).blacklist()
 	except TokenError:
 		return Response(
 			{"detail": "Invalid refresh token."},
-			status=status.HTTP_400_BAD_REQUEST,
+			status=status.HTTP_401_UNAUTHORIZED,
 		)
 
 	return Response(status=status.HTTP_204_NO_CONTENT)
@@ -158,7 +169,6 @@ def logout_view(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def me_view(request):
-	ensure_default_categories(request.user)
 	return Response({"user": UserSerializer(request.user).data}, status=status.HTTP_200_OK)
 
 
@@ -175,18 +185,20 @@ def csrf_view(request):
 
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
 	serializer_class = CategorySerializer
+	queryset = Category.objects.none()
 
-	def get_queryset(self):
-		ensure_default_categories(self.request.user)
-		return Category.objects.filter(user=self.request.user).order_by("id")
+	def get_queryset(self):  # type: ignore[override]
+		return Category.objects.filter(user=self.request.user)
 
 
 class NoteViewSet(viewsets.ModelViewSet):
 	serializer_class = NoteSerializer
+	queryset = Note.objects.none()
 
-	def get_queryset(self):
+	def get_queryset(self):  # type: ignore[override]
 		queryset = Note.objects.filter(user=self.request.user)
-		category_id = self.request.query_params.get("category")
+		request_query_params = cast(Any, self.request).query_params
+		category_id = request_query_params.get("category")
 		if category_id:
 			queryset = queryset.filter(category_id=category_id)
 		return queryset

@@ -12,7 +12,7 @@ class Category(models.Model):
 	)
 
 	class Meta:
-		ordering = ["name"]
+		ordering = ["id"]
 		unique_together = ("name", "user")
 
 	def __str__(self):
